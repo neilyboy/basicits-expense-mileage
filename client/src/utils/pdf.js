@@ -285,7 +285,7 @@ export async function generateMileageReportPDF(entries, companyName, range) {
 
   // Summary
   const totalMiles = entries.reduce((s, m) => {
-    if (m.start_mileage && m.end_mileage) return s + (m.end_mileage - m.start_mileage);
+    if (m.start_mileage != null && m.end_mileage != null) return s + (m.end_mileage - m.start_mileage);
     return s;
   }, 0);
   doc.setFillColor(...LIGHT_GRAY);
@@ -331,7 +331,7 @@ export async function generateMileageReportPDF(entries, companyName, range) {
     doc.text(m.start_mileage != null ? String(m.start_mileage) : '', 90, y + 4);
     doc.text(m.end_mileage != null ? String(m.end_mileage) : '', 115, y + 4);
     
-    if (m.start_mileage && m.end_mileage) {
+    if (m.start_mileage != null && m.end_mileage != null) {
       doc.setFont('helvetica', 'bold');
       doc.text((m.end_mileage - m.start_mileage).toFixed(1), 140, y + 4);
       doc.setFont('helvetica', 'normal');
@@ -374,7 +374,7 @@ export async function generateCombinedReportPDF(expenses, mileageEntries, compan
 
   const totalExpenses = expenses.reduce((s, e) => s + (e.amount || 0), 0);
   const totalMiles = mileageEntries.reduce((s, m) => {
-    if (m.start_mileage && m.end_mileage) return s + (m.end_mileage - m.start_mileage);
+    if (m.start_mileage != null && m.end_mileage != null) return s + (m.end_mileage - m.start_mileage);
     return s;
   }, 0);
 
@@ -476,7 +476,7 @@ export async function generateCombinedReportPDF(expenses, mileageEntries, compan
       doc.text(m.vehicle_label || '', 42, y + 4);
       doc.text(m.start_mileage != null ? String(m.start_mileage) : '', 95, y + 4);
       doc.text(m.end_mileage != null ? String(m.end_mileage) : '', 120, y + 4);
-      if (m.start_mileage && m.end_mileage) {
+      if (m.start_mileage != null && m.end_mileage != null) {
         doc.setFont('helvetica', 'bold');
         doc.text((m.end_mileage - m.start_mileage).toFixed(1), 145, y + 4);
         doc.setFont('helvetica', 'normal');

@@ -59,7 +59,7 @@ export default function History({ settings }) {
 
   const totalExpenses = expenses.reduce((s, e) => s + (e.amount || 0), 0);
   const totalMiles = mileage.reduce((s, m) => {
-    if (m.start_mileage && m.end_mileage) return s + (m.end_mileage - m.start_mileage);
+    if (m.start_mileage != null && m.end_mileage != null) return s + (m.end_mileage - m.start_mileage);
     return s;
   }, 0);
 
@@ -199,9 +199,9 @@ export default function History({ settings }) {
               <span className="text-[10px] text-slate-500">{m.date}</span>
             </div>
             <div className="flex items-center gap-4 text-sm">
-              {m.start_mileage && <span className="text-slate-400">Start: {m.start_mileage}</span>}
-              {m.end_mileage && <span className="text-slate-400">End: {m.end_mileage}</span>}
-              {m.start_mileage && m.end_mileage && (
+              {m.start_mileage != null && <span className="text-slate-400">Start: {m.start_mileage}</span>}
+              {m.end_mileage != null && <span className="text-slate-400">End: {m.end_mileage}</span>}
+              {m.start_mileage != null && m.end_mileage != null && (
                 <span className="text-emerald-400 font-semibold">{(m.end_mileage - m.start_mileage).toFixed(1)} mi</span>
               )}
             </div>

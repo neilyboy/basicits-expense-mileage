@@ -51,8 +51,8 @@ export default function MileageEntry({ settings }) {
       await api.createMileage({
         vehicle_id: data.vehicle_id,
         date: data.date,
-        start_mileage: data.start_mileage ? parseFloat(data.start_mileage) : null,
-        end_mileage: data.end_mileage ? parseFloat(data.end_mileage) : null,
+        start_mileage: data.start_mileage !== '' ? parseFloat(data.start_mileage) : null,
+        end_mileage: data.end_mileage !== '' ? parseFloat(data.end_mileage) : null,
         notes: data.notes
       });
       setStep('done');
@@ -61,7 +61,7 @@ export default function MileageEntry({ settings }) {
     }
   };
 
-  const miles = data.start_mileage && data.end_mileage
+  const miles = data.start_mileage !== '' && data.end_mileage !== ''
     ? (parseFloat(data.end_mileage) - parseFloat(data.start_mileage)).toFixed(1)
     : null;
 
