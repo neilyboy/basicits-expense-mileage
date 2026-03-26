@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Calendar, Filter, FileDown, ChevronRight, Receipt, Gauge, DollarSign } from 'lucide-react';
+import { ArrowLeft, Calendar, Filter, FileDown, ChevronRight, Receipt, Gauge, DollarSign, Pencil, Trash2, X, Save } from 'lucide-react';
 import { api } from '../api';
 import { generateExpenseReportPDF, generateMileageReportPDF, generateCombinedReportPDF } from '../utils/pdf';
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, subDays } from 'date-fns';
@@ -14,7 +14,7 @@ const PRESETS = [
   { label: 'All Time', fn: () => ({ start: '', end: '' }) }
 ];
 
-export default function History({ settings }) {
+export default function History({ settings, pin }) {
   const navigate = useNavigate();
   const [tab, setTab] = useState('expenses');
   const [expenses, setExpenses] = useState([]);
@@ -24,6 +24,8 @@ export default function History({ settings }) {
   const [dateRange, setDateRange] = useState({ start: '', end: '' });
   const [activePreset, setActivePreset] = useState('All Time');
   const [loading, setLoading] = useState(false);
+  const [editMileage, setEditMileage] = useState(null);
+  const [vehicles, setVehicles] = useState([]);
 
   const fetchData = async (range) => {
     setLoading(true);
@@ -41,7 +43,54 @@ export default function History({ settings }) {
     setLoading(false);
   };
 
-  useEffect(() => { fetchData(dateRange); }, []);
+  useEffect(() => {
+    fetchData(dateRange);
+    api.getVehicles().then(setVehicles).catch(() => {});
+  }, []);
+
+  const handleDeleteExpense = async (expId) => {
+    if (!confirm('Delete this expense?')) return;
+    if (!pin) { alert('Admin PIN required. Please log in via Admin first.'); return; }
+    try {
+      await api.deleteExpense(pin, expId);
+      fetchData(dateRange);
+    } catch (err) { alert('Delete failed: ' + err.message); }
+  };
+
+  const handleDeleteMileage = async (mId) => {
+    if (!confirm('Delete this mileage entry?')) return;
+    if (!pin) { alert('Admin PIN required. Please log in via Admin first.'); return; }
+    try {
+      await api.deleteMileage(pin, mId);
+      fetchData(dateRange);
+    } catch (err) { alert('Delete failed: ' + err.message); }
+  };
+
+  const openEditMileage = (m) => {
+    setEditMileage({
+      id: m.id,
+      vehicle_id: m.vehicle_id,
+      date: m.date,
+      start_mileage: m.start_mileage != null ? String(m.start_mileage) : '',
+      end_mileage: m.end_mileage != null ? String(m.end_mileage) : '',
+      notes: m.notes || ''
+    });
+  };
+
+  const handleSaveMileage = async () => {
+    if (!editMileage) return;
+    try {
+      await api.updateMileage(editMileage.id, {
+        vehicle_id: editMileage.vehicle_id,
+        date: editMileage.date,
+        start_mileage: editMileage.start_mileage !== '' ? parseFloat(editMileage.start_mileage) : null,
+        end_mileage: editMileage.end_mileage !== '' ? parseFloat(editMileage.end_mileage) : null,
+        notes: editMileage.notes
+      });
+      setEditMileage(null);
+      fetchData(dateRange);
+    } catch (err) { alert('Save failed: ' + err.message); }
+  };
 
   const applyPreset = (preset) => {
     const range = preset.fn();
@@ -196,7 +245,15 @@ export default function History({ settings }) {
           <div key={m.id} className="card p-3">
             <div className="flex items-center justify-between mb-1">
               <span className="font-medium text-sm">{m.vehicle_label || 'Vehicle'}</span>
-              <span className="text-[10px] text-slate-500">{m.date}</span>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] text-slate-500">{m.date}</span>
+                <button onClick={() => openEditMileage(m)} className="p-1.5 rounded-lg bg-slate-800 text-slate-400 active:bg-slate-700">
+                  <Pencil size={12} />
+                </button>
+                <button onClick={() => handleDeleteMileage(m.id)} className="p-1.5 rounded-lg bg-slate-800 text-red-400 active:bg-red-900/30">
+                  <Trash2 size={12} />
+                </button>
+              </div>
             </div>
             <div className="flex items-center gap-4 text-sm">
               {m.start_mileage != null && <span className="text-slate-400">Start: {m.start_mileage}</span>}
@@ -216,6 +273,50 @@ export default function History({ settings }) {
           <p className="text-slate-500 text-center py-12">No mileage entries found for this period.</p>
         )}
       </div>
+
+      {/* Mileage Edit Modal */}
+      {editMileage && (
+        <div className="fixed inset-0 z-50 bg-slate-950/90 flex items-end sm:items-center justify-center">
+          <div className="bg-slate-900 w-full max-w-lg rounded-t-3xl sm:rounded-3xl border border-slate-800 p-6 max-h-[90dvh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-bold">Edit Mileage Entry</h2>
+              <button onClick={() => setEditMileage(null)} className="p-2 rounded-xl bg-slate-800">
+                <X size={18} />
+              </button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm text-slate-400 mb-1 block">Vehicle</label>
+                <select value={editMileage.vehicle_id || ''} onChange={e => setEditMileage(prev => ({ ...prev, vehicle_id: parseInt(e.target.value) }))}>
+                  <option value="">Select vehicle</option>
+                  {vehicles.map(v => <option key={v.id} value={v.id}>{v.label}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-sm text-slate-400 mb-1 block">Date</label>
+                <input type="date" value={editMileage.date} onChange={e => setEditMileage(prev => ({ ...prev, date: e.target.value }))} />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-sm text-slate-400 mb-1 block">Start Mileage</label>
+                  <input type="number" inputMode="decimal" value={editMileage.start_mileage} onChange={e => setEditMileage(prev => ({ ...prev, start_mileage: e.target.value }))} />
+                </div>
+                <div>
+                  <label className="text-sm text-slate-400 mb-1 block">End Mileage</label>
+                  <input type="number" inputMode="decimal" value={editMileage.end_mileage} onChange={e => setEditMileage(prev => ({ ...prev, end_mileage: e.target.value }))} />
+                </div>
+              </div>
+              <div>
+                <label className="text-sm text-slate-400 mb-1 block">Notes</label>
+                <input type="text" value={editMileage.notes} onChange={e => setEditMileage(prev => ({ ...prev, notes: e.target.value }))} placeholder="Trip details..." />
+              </div>
+              <button onClick={handleSaveMileage} className="btn-primary w-full mt-2">
+                <Save size={18} /> Save Changes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

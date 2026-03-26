@@ -32,8 +32,8 @@ export default function App() {
         <Route path="/" element={<HomePage settings={settings} />} />
         <Route path="/expense" element={<ExpenseFlow settings={settings} />} />
         <Route path="/mileage" element={<MileageEntry settings={settings} />} />
-        <Route path="/history" element={<History settings={settings} adminPin={adminPin} />} />
-        <Route path="/expense/:id" element={<ExpenseDetail settings={settings} />} />
+        <Route path="/history" element={<History settings={settings} pin={adminPin} />} />
+        <Route path="/expense/:id" element={<ExpenseDetail settings={settings} pin={adminPin} />} />
         <Route path="/admin" element={<AdminLogin onAuth={setAdminPin} />} />
         <Route path="/admin/dashboard" element={adminPin ? <AdminDashboard pin={adminPin} onLogout={() => setAdminPin(null)} /> : <Navigate to="/admin" />} />
         <Route path="/admin/categories" element={adminPin ? <AdminCategories pin={adminPin} /> : <Navigate to="/admin" />} />

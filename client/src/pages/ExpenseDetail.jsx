@@ -1,20 +1,68 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, FileDown, Mail, Trash2 } from 'lucide-react';
+import { ArrowLeft, FileDown, Mail, Trash2, Pencil, Save, X } from 'lucide-react';
 import { api } from '../api';
 import { generateSingleExpensePDF } from '../utils/pdf';
 
-export default function ExpenseDetail({ settings }) {
+export default function ExpenseDetail({ settings, pin }) {
   const { id } = useParams();
   const navigate = useNavigate();
   const [expense, setExpense] = useState(null);
   const [emailPresets, setEmailPresets] = useState([]);
   const [showEmail, setShowEmail] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [editForm, setEditForm] = useState(null);
+  const [categories, setCategories] = useState([]);
+  const [vehicles, setVehicles] = useState([]);
+
+  const loadExpense = () => api.getExpense(id).then(e => { setExpense(e); return e; }).catch(() => navigate('/history'));
 
   useEffect(() => {
-    api.getExpense(id).then(setExpense).catch(() => navigate('/history'));
+    loadExpense().then(e => {
+      if (e) setEditForm({
+        category_id: e.category_id,
+        vehicle_id: e.vehicle_id,
+        amount: e.amount != null ? String(e.amount) : '',
+        description: e.description || '',
+        notes: e.notes || '',
+        purchase_date: e.purchase_date || '',
+        purchase_time: e.purchase_time || '',
+        mileage_reading: e.mileage_reading != null ? String(e.mileage_reading) : '',
+        receipt_photo: e.receipt_photo || null,
+      });
+    });
     api.getEmailPresets().then(setEmailPresets);
+    api.getCategories().then(setCategories).catch(() => {});
+    api.getVehicles().then(setVehicles).catch(() => {});
   }, [id]);
+
+  const handleDelete = async () => {
+    if (!confirm('Delete this expense?')) return;
+    if (!pin) { alert('Admin PIN required. Please log in via Admin first.'); return; }
+    try {
+      await api.deleteExpense(pin, id);
+      navigate('/history');
+    } catch (err) { alert('Delete failed: ' + err.message); }
+  };
+
+  const handleSaveEdit = async () => {
+    try {
+      await api.updateExpense(id, {
+        category_id: editForm.category_id,
+        vehicle_id: editForm.vehicle_id,
+        amount: editForm.amount !== '' ? parseFloat(editForm.amount) : null,
+        description: editForm.description,
+        notes: editForm.notes,
+        purchase_date: editForm.purchase_date,
+        purchase_time: editForm.purchase_time,
+        mileage_reading: editForm.mileage_reading !== '' ? parseFloat(editForm.mileage_reading) : null,
+        receipt_photo: editForm.receipt_photo,
+        custom_fields: {},
+      });
+      setEditing(false);
+      loadExpense();
+    } catch (err) { alert('Save failed: ' + err.message); }
+  };
 
   if (!expense) return <div className="page flex items-center justify-center"><p className="text-slate-500">Loading...</p></div>;
 
@@ -56,6 +104,12 @@ export default function ExpenseDetail({ settings }) {
           <ArrowLeft size={22} />
         </button>
         <h1 className="font-semibold text-lg flex-1">Expense Detail</h1>
+        <button onClick={() => setEditing(true)} className="p-2 rounded-xl bg-slate-800 text-slate-400">
+          <Pencil size={18} />
+        </button>
+        <button onClick={handleDelete} className="p-2 rounded-xl bg-slate-800 text-red-400">
+          <Trash2 size={18} />
+        </button>
       </div>
 
       <div className="px-4 py-4 space-y-4">
@@ -149,6 +203,62 @@ export default function ExpenseDetail({ settings }) {
           )}
         </div>
       </div>
+
+      {editing && editForm && (
+        <div className="fixed inset-0 z-50 bg-slate-950/90 flex items-end sm:items-center justify-center">
+          <div className="bg-slate-900 w-full max-w-lg rounded-t-3xl sm:rounded-3xl border border-slate-800 p-6 max-h-[90dvh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-bold">Edit Expense</h2>
+              <button onClick={() => setEditing(false)} className="p-2 rounded-xl bg-slate-800"><X size={18} /></button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm text-slate-400 mb-1 block">Category</label>
+                <select value={editForm.category_id || ''} onChange={e => setEditForm(f => ({ ...f, category_id: parseInt(e.target.value) || null }))}>
+                  <option value="">None</option>
+                  {categories.map(c => (<option key={c.id} value={c.id}>{c.icon} {c.name}</option>))}
+                </select>
+              </div>
+              <div>
+                <label className="text-sm text-slate-400 mb-1 block">Amount</label>
+                <input type="number" inputMode="decimal" step="0.01" value={editForm.amount} onChange={e => setEditForm(f => ({ ...f, amount: e.target.value }))} placeholder="0.00" />
+              </div>
+              <div>
+                <label className="text-sm text-slate-400 mb-1 block">Description</label>
+                <input type="text" value={editForm.description} onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))} placeholder="What was this for?" />
+              </div>
+              <div>
+                <label className="text-sm text-slate-400 mb-1 block">Vehicle</label>
+                <select value={editForm.vehicle_id || ''} onChange={e => setEditForm(f => ({ ...f, vehicle_id: parseInt(e.target.value) || null }))}>
+                  <option value="">None</option>
+                  {vehicles.map(v => (<option key={v.id} value={v.id}>{v.label}</option>))}
+                </select>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-sm text-slate-400 mb-1 block">Date</label>
+                  <input type="date" value={editForm.purchase_date} onChange={e => setEditForm(f => ({ ...f, purchase_date: e.target.value }))} />
+                </div>
+                <div>
+                  <label className="text-sm text-slate-400 mb-1 block">Time</label>
+                  <input type="time" value={editForm.purchase_time} onChange={e => setEditForm(f => ({ ...f, purchase_time: e.target.value }))} />
+                </div>
+              </div>
+              <div>
+                <label className="text-sm text-slate-400 mb-1 block">Mileage Reading</label>
+                <input type="number" inputMode="decimal" value={editForm.mileage_reading} onChange={e => setEditForm(f => ({ ...f, mileage_reading: e.target.value }))} placeholder="Odometer" />
+              </div>
+              <div>
+                <label className="text-sm text-slate-400 mb-1 block">Notes</label>
+                <input type="text" value={editForm.notes} onChange={e => setEditForm(f => ({ ...f, notes: e.target.value }))} placeholder="Additional notes..." />
+              </div>
+              <button onClick={handleSaveEdit} className="btn-primary w-full mt-2">
+                <Save size={18} /> Save Changes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

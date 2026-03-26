@@ -234,7 +234,7 @@ app.get('/api/mileage', (req, res) => {
 app.post('/api/mileage', (req, res) => {
   const { vehicle_id, date, start_mileage, end_mileage, notes } = req.body;
   const r = db.prepare('INSERT INTO mileage_entries (vehicle_id, date, start_mileage, end_mileage, notes) VALUES (?,?,?,?,?)').run(
-    vehicle_id, date || new Date().toISOString().split('T')[0], start_mileage || null, end_mileage || null, notes || ''
+    vehicle_id, date || new Date().toISOString().split('T')[0], start_mileage != null ? start_mileage : null, end_mileage != null ? end_mileage : null, notes || ''
   );
   res.json({ id: r.lastInsertRowid });
 });
