@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="102.4" fill="#0f172a"/>
+  <rect x="25.6" y="25.6" width="460.8" height="460.8" rx="76.8" fill="#1e3a5f" opacity="0.3"/>
+  <text x="256" y="296.96" font-family="Arial, Helvetica, sans-serif" font-weight="bold" font-size="179.2" fill="white" text-anchor="middle" dominant-baseline="middle">PL</text>
+  <text x="256" y="399.36" font-family="Arial, Helvetica, sans-serif" font-size="40.96" fill="rgba(255,255,255,0.5)" text-anchor="middle">LEDGER</text>
+</svg>
