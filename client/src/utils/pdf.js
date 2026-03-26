@@ -10,9 +10,8 @@ async function loadLogoAsDataURL() {
   try {
     const res = await fetch('/logo.svg');
     const svgText = await res.text();
-    // Convert white SVG to dark for PDF (white background)
-    const darkSvg = svgText.replace(/fill:\s*#fff/g, 'fill: #1e3a5f').replace(/class="st0"/g, 'style="fill:#1e3a5f"');
-    const blob = new Blob([darkSvg], { type: 'image/svg+xml' });
+    // Keep logo white — it sits on the dark brand-color header
+    const blob = new Blob([svgText], { type: 'image/svg+xml' });
     return new Promise((resolve) => {
       const img = new Image();
       const canvas = document.createElement('canvas');
